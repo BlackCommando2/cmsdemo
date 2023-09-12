@@ -15,6 +15,8 @@ import Tooltip from "@mui/material/Tooltip";
 import MenuItem from "@mui/material/MenuItem";
 import LogoDevIcon from "@mui/icons-material/LogoDev";
 import Link from "@mui/material/Link";
+// import ImageDisplay from "./imageDisplay";
+import ImageDisplay from "./imageDisplay";
 
 const settings = [{ title: "Profile", url: '/' }, { title: "Account", url: '/' }, { title: "Login", url: '/login' }, { title: "Admin Panel", url: '/admin-panel' }];
 
@@ -53,7 +55,7 @@ function Header() {
                 <Toolbar disableGutters>
                     {/*full screen view*/}
                     {/* <LogoDevIcon sx={{ display: { xs: "none", md: "flex" }, mr: 1 }} /> */}
-                    <img src={logo} alt="Logo" style={{ marginTop: 5, paddingRight: 5, height: 40, width: 40 }} />
+                    <ImageDisplay />
                     <Typography
                         variant="h6"
                         noWrap

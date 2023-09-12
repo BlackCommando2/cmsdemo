@@ -1,12 +1,20 @@
 const express = require('express');
-const mysql = require('mysql2');
 const bodyParser = require('body-parser');
-
-const app = express();
+const multer = require('multer');
+const mysql = require('mysql2');
+const fs = require('fs');
 const cors = require('cors');
+const app = express();
+const port = process.env.PORT || 8080;
 app.use(cors());
 
-const port = process.env.PORT || 8080;
+// Create a storage engine for Multer to store uploaded images
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({ extended: true }));
+
 app.get("/", (req, res) => {
     res.send("Hello World");
 });
@@ -66,20 +74,20 @@ app.get('/getCard', (req, res) => {
     });
 });
 
-app.get('/getLogo', (req, res) => {
-    db.query('SELECT * FROM logo', (err, results) => {
-        if (err) {
-            console.error('Error fetching logo content:', err);
-            res.status(500).json({ error: 'Internal server error' });
-            return;
-        }
-        if (results.length === 0) {
-            res.status(404).json({ error: 'logo data not found' });
-        } else {
-            res.json(results[0]);
-        }
-    });
-});
+// app.get('/getLogo', (req, res) => {
+//     db.query('SELECT * FROM logo', (err, results) => {
+//         if (err) {
+//             console.error('Error fetching logo content:', err);
+//             res.status(500).json({ error: 'Internal server error' });
+//             return;
+//         }
+//         if (results.length === 0) {
+//             res.status(404).json({ error: 'logo data not found' });
+//         } else {
+//             res.json(results[0]);
+//         }
+//     });
+// });
 
 app.get('/getQuicklink', (req, res) => {
     db.query('SELECT * FROM quicklink', (err, results) => {
@@ -242,27 +250,72 @@ app.post('/updateFooterdata', (req, res) => {
     });
 });
 
-app.post('/updateLogo', (req, res) => {
-    // const newLogo = req.body.logo;
-    const newLogo = req.body.logo;
-    // Convert the base64 image data to a buffer (assuming it's base64 encoded)
-    const logoBuffer = Buffer.from(newLogo, 'base64');
-    db.query('TRUNCATE TABLE logo', (truncateErr) => {
+// app.post('/updateLogo', (req, res) => {
+//     // const newLogo = req.body.logo;
+//     const newLogo = req.body.logo;
+//     // Convert the base64 image data to a buffer (assuming it's base64 encoded)
+//     const logoBuffer = Buffer.from(newLogo, 'base64');
+//     db.query('TRUNCATE TABLE logo', (truncateErr) => {
+//         if (truncateErr) {
+//             console.error('Error truncating logo table:', truncateErr);
+//             res.status(500).json({ error: 'Internal server error' });
+//             return;
+//         }
+//         db.query('INSERT INTO logo (logo) VALUES (?)'
+//             , [logoBuffer], (insertErr) => {
+//                 if (insertErr) {
+//                     console.error('Error inserting new header data:', insertErr);
+//                     res.status(500).json({ error: 'Internal server error' });
+//                     return;
+//                 }
+//                 res.json({ message: 'logo data updated successfully' });
+//             });
+//     });
+// });
+
+// API endpoint to handle image uploads
+app.post('/upload', upload.single('image'), (req, res) => {
+    const { originalname, mimetype, buffer } = req.file;
+
+    // Insert the image into the database as a BLOB
+    db.query('TRUNCATE TABLE images', (truncateErr) => {
         if (truncateErr) {
-            console.error('Error truncating logo table:', truncateErr);
+            console.error('Error truncating sociallink table:', truncateErr);
             res.status(500).json({ error: 'Internal server error' });
             return;
         }
-        db.query('INSERT INTO logo (logo) VALUES (?)'
-            , [logoBuffer], (insertErr) => {
-                if (insertErr) {
-                    console.error('Error inserting new header data:', insertErr);
+        db.query(
+            'INSERT INTO images (filename, mimetype, image_data) VALUES (?, ?, ?)',
+            [originalname, mimetype, buffer],
+            (err, result) => {
+                if (err) {
+                    console.error('Error uploading image:', err);
                     res.status(500).json({ error: 'Internal server error' });
-                    return;
+                } else {
+                    res.json({ message: 'Image uploaded successfully' });
                 }
-                res.json({ message: 'logo data updated successfully' });
-            });
+            }
+        );
     });
+});
+app.get('/images', (req, res) => {
+    const imageId = 1;
+    db.query(
+        'SELECT mimetype, image_data FROM images WHERE id = ?',
+        [imageId],
+        (err, result) => {
+            if (err) {
+                console.error('Error retrieving image:', err);
+                res.status(500).json({ error: 'Internal server error' });
+            } else if (result.length === 0) {
+                res.status(404).json({ error: 'Image not found' });
+            } else {
+                const { mimetype, image_data } = result[0];
+                res.setHeader('Content-Type', mimetype);
+                res.send(result[0]);
+            }
+        }
+    );
 });
 
 app.listen(port, () => {

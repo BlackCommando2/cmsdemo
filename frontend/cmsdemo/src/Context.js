@@ -12,11 +12,11 @@ const ContextProvider = ({ children }) => {
 
     //Header Data
 
-    // const [logo, setLogo] = useState(logoicon);
-    const [logo, setLogo] = useState(() => {
-        const storedLogo = localStorage.getItem('logo');
-        return storedLogo || logoicon;
-    });
+    const [logo, setLogo] = useState(null);
+    // const [logo, setLogo] = useState(() => {
+    //     const storedLogo = localStorage.getItem('logo');
+    //     return storedLogo || logoicon;
+    // });
 
     const [slides, setSlides] = useState(() => {
         const storedSlides = localStorage.getItem('slides');
@@ -231,38 +231,30 @@ const ContextProvider = ({ children }) => {
             });
     }
 
-    const updateLogo = (newLogo) => {
-        axios.post(`${backendBaseUrl}/updateLogo`, {
-            logo: newLogo,
-        })
-            .then((response) => {
-                console.log("logo data updated successfully:", response.data);
-            })
-            .catch((error) => {
-                console.error('Error updating logo data:', error);
+    const updateLogo = async (selectedFile) => {
+        const formData = new FormData();
+        formData.append('image', selectedFile);
+        try {
+            const response = await axios.post(`${backendBaseUrl}/upload`, formData, {
+                headers: {
+                    'Content-Type': 'multipart/form-data',
+                },
             });
-    }
+            console.log('Image uploaded successfully:', response.data);
+        } catch (error) {
+            console.error('Error uploading image:', error);
+        }
+    };
+
 
     const getLogo = () => {
-        axios.get(`${backendBaseUrl}/getlogo`)
+        axios.get(`${backendBaseUrl}/images`)
             .then((response) => {
-                const logoData = response.data;
-                console.log("response: " + JSON.stringify(logoData));
-                const logoBlob = new Blob([logoData], { type: 'image/jpeg' });
-                const logoUrl = URL.createObjectURL(logoBlob);
-                // const reader = new FileReader();
-                // reader.onload = () => {
-                //     const logoBase64 = reader.result;
-                //     setLogo(logoBase64);
-                //     console.log('logo: ' + logoBase64);
-                // };
-                // reader.readAsDataURL(logoBlob);
-                console.log("logoUrl: " + logoUrl);
-                setLogo(logoUrl);
-                // localStorage.setItem('logo', logoUrl);
+                setLogo(response.data);
+                // localStorage.setItem('logo', response.data);
             })
             .catch((error) => {
-                console.error('Error fetching header data:', error);
+                console.error('Error fetching image:', error);
             });
     }
 
